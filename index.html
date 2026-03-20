@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fellowship Dungeon Tracker</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0A1419 0%, #0d1419 50%, #0D1821 100%);
+            color: #C9A770;
+            min-height: 100vh;
+            padding: 10px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+        header {
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 15px;
+            background: linear-gradient(135deg, #1a2634 0%, #0d1419 100%);
+            border: 2px solid #2A5F6F;
+            border-radius: 8px;
+        }
+        h1 {
+            font-size: 32px;
+            color: #D4A574;
+            font-family: Georgia, serif;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            margin-bottom: 5px;
+        }
+        .subtitle { color: #4DD0E1; font-size: 14px; margin-bottom: 10px; }
+        .dungeons-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .dungeon-card {
+            background: #0D1821;
+            border: 2px solid #2A5F6F;
+            border-radius: 6px;
+            padding: 10px;
+            transition: all 0.2s ease;
+            cursor: pointer;
+        }
+        .dungeon-card:hover {
+            border-color: #4DD0E1;
+            box-shadow: 0 0 15px rgba(77, 208, 225, 0.3);
+        }
+        .dungeon-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .dungeon-name { font-size: 16px; font-weight: bold; color: #D4A574; }
+        .dungeon-type {
+            font-size: 9px;
+            padding: 2px 6px;
+            border-radius: 3px;
+            background: #FFB74D;
+            color: #0A1419;
+            font-weight: bold;
+        }
+        .dungeon-info {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .info-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 13px;
+        }
+        .info-label { color: #888; font-size: 11px; }
+        .info-value { font-weight: bold; color: #4DD0E1; }
+        .league-badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 3px;
+            font-size: 11px;
+            font-weight: bold;
+            color: white;
+        }
+        .league-contender { background: #4CAF50; }
+        .league-adept { background: #2196F3; }
+        .league-champion { background: #9C27B0; }
+        .league-paragon { background: #FFB300; }
+        .league-eternal { background: #FF6F00; }
+        .league-none { background: #555; }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal.active { display: flex; }
+        .modal-content {
+            background: #0D1821;
+            border: 3px solid #2A5F6F;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+        .modal-header {
+            font-size: 24px;
+            color: #D4A574;
+            margin-bottom: 20px;
+            font-weight: bold;
+        }
+        .form-group { margin-bottom: 20px; }
+        .form-label {
+            display: block;
+            color: #C9A770;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        .form-input, .form-select {
+            width: 100%;
+            padding: 12px;
+            background: #0A1419;
+            border: 2px solid #2A5F6F;
+            border-radius: 6px;
+            color: #D4A574;
+            font-size: 16px;
+        }
+        .form-select { cursor: pointer; }
+        .form-input:focus, .form-select:focus {
+            outline: none;
+            border-color: #4DD0E1;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 30px;
+        }
+        .btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            font-weight: bold;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .btn-save { background: #4CAF50; color: white; }
+        .btn-save:hover { background: #45a049; }
+        .btn-cancel { background: #f44336; color: white; }
+        .btn-cancel:hover { background: #da190b; }
+        .btn-clear { background: #555; color: white; }
+        .btn-clear:hover { background: #444; }
+        .section-title {
+            font-size: 18px;
+            color: #D4A574;
+            font-family: Georgia, serif;
+            margin: 15px 0 10px 0;
+            padding-bottom: 5px;
+            border-bottom: 1px solid #2A5F6F;
+        }
+        .not-completed { opacity: 0.5; }
+        .character-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        .character-card {
+            background: linear-gradient(135deg, #1a2634 0%, #0d1419 100%);
+            border: 3px solid #2A5F6F;
+            border-radius: 10px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        .character-card:hover {
+            border-color: #4DD0E1;
+            transform: translateY(-5px);
+            box-shadow: 0 5px 20px rgba(77, 208, 225, 0.4);
+        }
+        .character-portrait {
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 10px;
+            border-radius: 50%;
+            background: #0A1419;
+            border: 3px solid #D4A574;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            font-weight: bold;
+            color: #D4A574;
+        }
+        .character-name { font-size: 18px; font-weight: bold; color: #D4A574; margin-bottom: 5px; }
+        .character-hero { font-size: 13px; color: #C9A770; margin-bottom: 8px; }
+        .character-rating { font-size: 16px; color: #4DD0E1; font-weight: bold; }
+        .character-rating-label { font-size: 11px; color: #888; }
+        .char-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            background: #0A1419;
+            border: 1px solid #2A5F6F;
+            border-radius: 6px;
+            margin-bottom: 10px;
+        }
+        .char-info { flex: 1; }
+        .char-name { font-weight: bold; color: #D4A574; }
+        .char-hero { font-size: 12px; color: #C9A770; }
+        .setup-screen {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .setup-box {
+            background: linear-gradient(135deg, #1a2634 0%, #0d1419 100%);
+            border: 3px solid #2A5F6F;
+            border-radius: 10px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+        .setup-title {
+            font-size: 36px;
+            color: #D4A574;
+            font-family: Georgia, serif;
+            margin-bottom: 10px;
+        }
+        .setup-subtitle { color: #C9A770; margin-bottom: 30px; }
+        .save-indicator {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: bold;
+            opacity: 0;
+            transition: opacity 0.3s;
+            z-index: 2000;
+        }
+        .save-indicator.show { opacity: 1; }
+    </style>
+</head>
+<body>
+    <div class="save-indicator" id="saveIndicator">✓ Saved</div>
+    <div class="container">
+        <!-- First Launch Setup -->
+        <div id="setupScreen" class="setup-screen" style="display: none;">
+            <div class="setup-box">
+                <div class="setup-title">⚔️ FELLOWSHIP TRACKER</div>
+                <div class="setup-subtitle">Welcome! Let's set up your account.</div>
+                <form id="setupForm">
+                    <div class="form-group">
+                        <label class="form-label">Your Account Name</label>
+                        <input type="text" class="form-input" id="accountNameInput" placeholder="Enter your account name" required>
+                        <p style="font-size: 12px; color: #888; margin-top: 5px;">This will be displayed on all your characters</p>
+                    </div>
+                    <button type="submit" class="btn btn-save" style="width: 100%;">Continue</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- Character Selection Screen -->
+        <div id="characterSelectionScreen" style="display: none;">
+            <header style="margin-bottom: 30px;">
+                <h1>⚔️ FELLOWSHIP TRACKER</h1>
+                <p class="subtitle">Account: <span id="displayAccountName" style="color: #D4A574; font-weight: bold;"></span></p>
+            </header>
+            <div id="characterGrid" class="character-grid"></div>
+            <div style="text-align: center; margin-top: 20px;">
+                <button id="addCharacterBtnMain" class="btn btn-save" style="width: 200px; padding: 12px;">+ Add Character</button>
+                <button id="changeAccountNameBtn" class="btn" style="width: 200px; padding: 12px; background: #555; color: white; margin-left: 10px;">Change Name</button>
+            </div>
+        </div>
+
+        <!-- Tracker Screen -->
+        <div id="trackerScreen" style="display: none;">
+            <header>
+                <h1>⚔️ FELLOWSHIP TRACKER</h1>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+                    <button id="backBtn" class="btn" style="background: #555; color: white; padding: 8px 16px;">← Back</button>
+                    <div style="text-align: center; flex: 1;">
+                        <span id="currentAccountName" style="font-size: 16px; color: #C9A770;"></span>
+                        <span style="color: #555; margin: 0 10px;">•</span>
+                        <span id="currentCharHero" style="font-size: 18px; color: #D4A574; font-weight: bold;"></span>
+                    </div>
+                    <button id="manageCharactersBtn" class="btn" style="background: #2196F3; color: white; padding: 8px 16px;">Manage</button>
+                </div>
+            </header>
+
+            <div class="section-title">Regular Dungeons</div>
+            <div class="dungeons-grid" id="regularDungeons"></div>
+
+            <div class="section-title">Capstone Dungeons</div>
+            <div class="dungeons-grid" id="capstoneDungeons"></div>
+        </div>
+    </div>
+
+    <!-- Modals -->
+    <div class="modal" id="editModal">
+        <div class="modal-content">
+            <div class="modal-header" id="modalTitle">Edit Dungeon</div>
+            <form id="editForm">
+                <div class="form-group" id="leagueGroup">
+                    <label class="form-label">League</label>
+                    <select class="form-select" id="leagueSelect">
+                        <option value="">Not Completed</option>
+                        <option value="Contender">Contender</option>
+                        <option value="Adept">Adept</option>
+                        <option value="Champion">Champion</option>
+                        <option value="Paragon">Paragon</option>
+                        <option value="Eternal">Eternal</option>
+                    </select>
+                </div>
+                <div class="form-group" id="capstoneCompletedGroup" style="display: none;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="checkbox" id="capstoneCompleted" style="width: 20px; height: 20px; margin-right: 10px; cursor: pointer;">
+                        <span class="form-label" style="margin: 0;">Completed</span>
+                    </label>
+                </div>
+                <div class="form-group" id="difficultyGroup">
+                    <label class="form-label">Difficulty Number (1-6)</label>
+                    <select class="form-select" id="difficultyNumberSelect">
+                        <option value="">Select difficulty</option>
+                        <option value="1">1</option>
+                        <option value="2">2</option>
+                        <option value="3">3</option>
+                        <option value="4">4</option>
+                        <option value="5">5</option>
+                        <option value="6">6</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Best Time (MM:SS)</label>
+                    <input type="text" class="form-input" id="timeInput" placeholder="10:45">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Rating Earned</label>
+                    <input type="number" class="form-input" id="ratingInput" placeholder="545">
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit" class="btn btn-save">Save</button>
+                    <button type="button" class="btn btn-clear" id="clearBtn">Clear</button>
+                    <button type="button" class="btn btn-cancel" id="cancelBtn">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="addCharacterModal">
+        <div class="modal-content">
+            <div class="modal-header">Add New Character</div>
+            <form id="addCharacterForm">
+                <div class="form-group">
+                    <label class="form-label">Select Hero</label>
+                    <select class="form-select" id="newCharacterHero" required>
+                        <option value="">Choose a hero...</option>
+                        <option value="Elarion">Elarion - The Skystrider</option>
+                        <option value="Helena">Helena - The Warmaster</option>
+                        <option value="Mara">Mara - The Hungering Blade</option>
+                        <option value="Meiko">Meiko - The Twinsoul</option>
+                        <option value="Rime">Rime - The Harbinger of Winter</option>
+                        <option value="Sylvie">Sylvie - Daughter of the Forest</option>
+                        <option value="Tariq">Tariq - The Thunderlord</option>
+                        <option value="Vigour">Vigour - The Lightshaper</option>
+                        <option value="Xavian">Xavian - Light of Azamir</option>
+                        <option value="Aeona">Aeona - Timeweaver</option>
+                        <option value="Ardeos">Ardeos - The Pyromancer</option>
+                    </select>
+                </div>
+                <div class="modal-buttons">
+                    <button type="submit" class="btn btn-save">Create Character</button>
+                    <button type="button" class="btn btn-cancel" id="cancelAddBtn">Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="modal" id="manageModal">
+        <div class="modal-content">
+            <div class="modal-header">Manage Characters</div>
+            <div id="charactersList"></div>
+            <button type="button" class="btn btn-cancel" id="closeManageBtn" style="width: 100%; margin-top: 20px;">Close</button>
+        </div>
+    </div>
+
+    <script>
+        // Storage abstraction - works with both Electron and browser
+        const Storage = {
+            data: {},
+            
+            async load() {
+                if (window.electronAPI) {
+                    // Electron mode - load from file
+                    this.data = await window.electronAPI.loadData();
+                } else {
+                    // Browser mode - use localStorage as fallback
+                    const saved = localStorage.getItem('fellowshipData');
+                    this.data = saved ? JSON.parse(saved) : {};
+                }
+                return this.data;
+            },
+            
+            async save() {
+                if (window.electronAPI) {
+                    // Electron mode - save to file
+                    await window.electronAPI.saveData(this.data);
+                } else {
+                    // Browser mode - save to localStorage
+                    localStorage.setItem('fellowshipData', JSON.stringify(this.data));
+                }
+                showSaveIndicator();
+            },
+            
+            get(key) {
+                return this.data[key];
+            },
+            
+            set(key, value) {
+                this.data[key] = value;
+                this.save();
+            }
+        };
+
+        function showSaveIndicator() {
+            const indicator = document.getElementById('saveIndicator');
+            indicator.classList.add('show');
+            setTimeout(() => indicator.classList.remove('show'), 2000);
+        }
+
+        const dungeons = {
+            regular: [
+                { id: 'wyrmheart', name: 'Wyrmheart' },
+                { id: 'stormwatch', name: 'Stormwatch' },
+                { id: 'sailors-abyss', name: 'Sailors Abyss' },
+                { id: 'empyrean-sands', name: 'Empyrean Sands' },
+                { id: 'urrak-markets', name: 'Urrak Markets' },
+                { id: 'everdawn-grove', name: 'Everdawn Grove' },
+                { id: 'godfall-quarry', name: 'Godfall Quarry' },
+                { id: 'silken-hollow', name: 'Silken Hollow' }
+            ],
+            capstone: [
+                { id: 'ransack-drakheim', name: 'Ransack of Drakheim' },
+                { id: 'wraithtide-vault', name: 'Wraithtide Vault' },
+                { id: 'heart-tuzari', name: 'The Heart of Tuzari' },
+                { id: 'cithrels-fall', name: 'Cithrels Fall' }
+            ]
+        };
+
+        let currentCharacterId = null;
+        let currentEditingDungeon = null;
+        let isEditingCapstone = false;
+        let accountName = '';
+
+        const heroInitials = {
+            'Elarion': 'E', 'Helena': 'H', 'Mara': 'M', 'Meiko': 'M',
+            'Rime': 'R', 'Sylvie': 'S', 'Tariq': 'T', 'Vigour': 'V',
+            'Xavian': 'X', 'Aeona': 'A', 'Ardeos': 'A'
+        };
+
+        function loadCharacters() {
+            return Storage.get('characters') || [];
+        }
+
+        function saveCharacters(characters) {
+            Storage.set('characters', characters);
+        }
+
+        function loadProgress() {
+            if (!currentCharacterId) return {};
+            return Storage.get(`progress_${currentCharacterId}`) || {};
+        }
+
+        function saveProgress(progress) {
+            if (!currentCharacterId) return;
+            Storage.set(`progress_${currentCharacterId}`, progress);
+        }
+
+        function calculateTotalRating(characterId) {
+            const progress = Storage.get(`progress_${characterId}`) || {};
+            let total = 0;
+            Object.values(progress).forEach(dungeon => {
+                const rating = parseInt(dungeon.rating) || 0;
+                if (rating > 0) total += rating;
+            });
+            return total;
+        }
+
+        document.getElementById('setupForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('accountNameInput').value.trim();
+            if (!name) {
+                alert('Please enter an account name');
+                return;
+            }
+            accountName = name;
+            Storage.set('accountName', name);
+            showCharacterSelection();
+        });
+
+        document.getElementById('changeAccountNameBtn').addEventListener('click', function() {
+            const newName = prompt('Enter new account name:', accountName);
+            if (newName && newName.trim()) {
+                accountName = newName.trim();
+                Storage.set('accountName', accountName);
+                document.getElementById('displayAccountName').textContent = accountName;
+            }
+        });
+
+        function showSetup() {
+            document.getElementById('setupScreen').style.display = 'flex';
+            document.getElementById('characterSelectionScreen').style.display = 'none';
+            document.getElementById('trackerScreen').style.display = 'none';
+        }
+
+        function showCharacterSelection() {
+            document.getElementById('setupScreen').style.display = 'none';
+            document.getElementById('characterSelectionScreen').style.display = 'block';
+            document.getElementById('trackerScreen').style.display = 'none';
+            document.getElementById('displayAccountName').textContent = accountName;
+            currentCharacterId = null;
+            renderCharacterGrid();
+        }
+
+        function showTracker(characterId) {
+            currentCharacterId = characterId;
+            const characters = loadCharacters();
+            const character = characters.find(c => c.id === characterId);
+            
+            if (!character) return;
+            
+            document.getElementById('currentAccountName').textContent = accountName;
+            document.getElementById('currentCharHero').textContent = character.hero;
+            document.getElementById('setupScreen').style.display = 'none';
+            document.getElementById('characterSelectionScreen').style.display = 'none';
+            document.getElementById('trackerScreen').style.display = 'block';
+            renderDungeons();
+        }
+
+        function renderCharacterGrid() {
+            const characters = loadCharacters();
+            const grid = document.getElementById('characterGrid');
+            
+            if (characters.length === 0) {
+                grid.innerHTML = '<p style="text-align: center; color: #888; grid-column: 1/-1;">No characters yet. Add one to get started!</p>';
+                return;
+            }
+            
+            grid.innerHTML = characters.map(char => {
+                const initial = heroInitials[char.hero] || char.hero[0];
+                const rating = calculateTotalRating(char.id);
+                
+                return `
+                    <div class="character-card" onclick="selectCharacter('${char.id}')">
+                        <div class="character-portrait">${initial}</div>
+                        <div class="character-name">${accountName}</div>
+                        <div class="character-hero">${char.hero}</div>
+                        <div class="character-rating-label">Total Rating</div>
+                        <div class="character-rating">⚡ ${rating}</div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.selectCharacter = function(characterId) {
+            showTracker(characterId);
+        };
+
+        document.getElementById('backBtn').addEventListener('click', showCharacterSelection);
+
+        document.getElementById('addCharacterBtnMain').addEventListener('click', function() {
+            document.getElementById('addCharacterModal').classList.add('active');
+        });
+
+        document.getElementById('cancelAddBtn').addEventListener('click', function() {
+            document.getElementById('addCharacterModal').classList.remove('active');
+        });
+
+        document.getElementById('addCharacterForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const hero = document.getElementById('newCharacterHero').value;
+            
+            if (!hero) {
+                alert('Please select a hero');
+                return;
+            }
+
+            const characters = loadCharacters();
+            const newCharacter = {
+                id: Date.now().toString(),
+                hero: hero
+            };
+            
+            characters.push(newCharacter);
+            saveCharacters(characters);
+            
+            document.getElementById('newCharacterHero').value = '';
+            document.getElementById('addCharacterModal').classList.remove('active');
+            
+            renderCharacterGrid();
+        });
+
+        document.getElementById('manageCharactersBtn').addEventListener('click', function() {
+            const characters = loadCharacters();
+            const list = document.getElementById('charactersList');
+            
+            if (characters.length === 0) {
+                list.innerHTML = '<p style="color: #888; text-align: center;">No characters yet</p>';
+            } else {
+                list.innerHTML = characters.map(char => {
+                    const rating = calculateTotalRating(char.id);
+                    return `
+                        <div class="char-item">
+                            <div class="char-info">
+                                <div class="char-name">${accountName} - ${char.hero}</div>
+                                <div class="char-hero">Total Rating: ⚡ ${rating}</div>
+                            </div>
+                            <button onclick="deleteCharacter('${char.id}')" class="btn btn-cancel" style="padding: 8px 16px;">Delete</button>
+                        </div>
+                    `;
+                }).join('');
+            }
+            
+            document.getElementById('manageModal').classList.add('active');
+        });
+
+        document.getElementById('closeManageBtn').addEventListener('click', function() {
+            document.getElementById('manageModal').classList.remove('active');
+        });
+
+        window.deleteCharacter = function(characterId) {
+            if (!confirm('Delete this character and all their progress?')) return;
+            
+            let characters = loadCharacters();
+            characters = characters.filter(c => c.id !== characterId);
+            saveCharacters(characters);
+            
+            Storage.set(`progress_${characterId}`, null);
+            
+            if (currentCharacterId === characterId) {
+                showCharacterSelection();
+            } else {
+                renderCharacterGrid();
+                document.getElementById('manageModal').classList.remove('active');
+            }
+        };
+
+        function getLeagueClass(league) {
+            if (!league) return 'league-none';
+            return `league-${league.toLowerCase()}`;
+        }
+
+        function createDungeonCard(dungeon, isCapstone = false) {
+            if (!currentCharacterId) {
+                return `
+                    <div class="dungeon-card not-completed">
+                        <div class="dungeon-header">
+                            <div class="dungeon-name">${dungeon.name}</div>
+                            ${isCapstone ? `<div class="dungeon-type">CAPSTONE</div>` : ''}
+                        </div>
+                        <div style="text-align: center; color: #888; padding: 20px;">
+                            Select a character first
+                        </div>
+                    </div>
+                `;
+            }
+
+            const progress = loadProgress();
+            const dungeonProgress = progress[dungeon.id] || {};
+            const league = dungeonProgress.league || '';
+            const difficultyNum = dungeonProgress.difficultyNum || '';
+            const time = dungeonProgress.time || '--:--';
+            const rating = dungeonProgress.rating || '--';
+            const isCompleted = league !== '';
+
+            const displayText = isCapstone 
+                ? (league ? league : 'Not Done')
+                : (league && difficultyNum ? `${league} ${difficultyNum}` : 'Not Done');
+
+            return `
+                <div class="dungeon-card ${isCompleted ? '' : 'not-completed'}" onclick="openEditModal('${dungeon.id}', '${dungeon.name}', ${isCapstone})">
+                    <div class="dungeon-header">
+                        <div class="dungeon-name">${dungeon.name}</div>
+                        ${isCapstone ? `<div class="dungeon-type">CAPSTONE</div>` : ''}
+                    </div>
+                    <div class="dungeon-info">
+                        <span class="league-badge ${getLeagueClass(league)}">
+                            ${displayText}
+                        </span>
+                        <div class="info-item">
+                            <span class="info-label">⏱</span>
+                            <span class="info-value">${time}</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">⚡</span>
+                            <span class="info-value">${rating}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderDungeons() {
+            document.getElementById('regularDungeons').innerHTML = dungeons.regular.map(d => createDungeonCard(d, false)).join('');
+            document.getElementById('capstoneDungeons').innerHTML = dungeons.capstone.map(d => createDungeonCard(d, true)).join('');
+        }
+
+        window.openEditModal = function(dungeonId, dungeonName, isCapstone = false) {
+            if (!currentCharacterId) {
+                alert('Please select a character first');
+                return;
+            }
+
+            currentEditingDungeon = dungeonId;
+            isEditingCapstone = isCapstone;
+            const progress = loadProgress();
+            const dungeonProgress = progress[dungeonId] || {};
+
+            document.getElementById('modalTitle').textContent = `Edit: ${dungeonName}`;
+            document.getElementById('timeInput').value = dungeonProgress.time || '';
+            document.getElementById('ratingInput').value = dungeonProgress.rating || '';
+
+            if (isCapstone) {
+                document.getElementById('leagueGroup').style.display = 'none';
+                document.getElementById('difficultyGroup').style.display = 'none';
+                document.getElementById('capstoneCompletedGroup').style.display = 'block';
+                document.getElementById('capstoneCompleted').checked = !!dungeonProgress.league;
+            } else {
+                document.getElementById('leagueGroup').style.display = 'block';
+                document.getElementById('difficultyGroup').style.display = 'block';
+                document.getElementById('capstoneCompletedGroup').style.display = 'none';
+                document.getElementById('leagueSelect').value = dungeonProgress.league || '';
+                document.getElementById('difficultyNumberSelect').value = dungeonProgress.difficultyNum || '';
+            }
+
+            document.getElementById('editModal').classList.add('active');
+        };
+
+        function closeModal() {
+            document.getElementById('editModal').classList.remove('active');
+            currentEditingDungeon = null;
+            isEditingCapstone = false;
+        }
+
+        document.getElementById('editForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            let league = '';
+            let difficultyNum = '';
+
+            if (isEditingCapstone) {
+                const isCompleted = document.getElementById('capstoneCompleted').checked;
+                if (isCompleted) {
+                    if (currentEditingDungeon === 'ransack-drakheim') league = 'Contender';
+                    else if (currentEditingDungeon === 'wraithtide-vault') league = 'Adept';
+                    else if (currentEditingDungeon === 'heart-tuzari') league = 'Champion';
+                    else if (currentEditingDungeon === 'cithrels-fall') league = 'Paragon';
+                }
+                difficultyNum = '7';
+            } else {
+                league = document.getElementById('leagueSelect').value;
+                difficultyNum = document.getElementById('difficultyNumberSelect').value;
+
+                if (league && !difficultyNum) {
+                    alert('Please select a difficulty number (1-6)');
+                    return;
+                }
+            }
+
+            const time = document.getElementById('timeInput').value;
+            const rating = document.getElementById('ratingInput').value;
+
+            const progress = loadProgress();
+            progress[currentEditingDungeon] = {
+                league: league,
+                difficultyNum: difficultyNum,
+                time: time || '--:--',
+                rating: rating || '--'
+            };
+
+            saveProgress(progress);
+            renderDungeons();
+            closeModal();
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', function() {
+            if (confirm('Clear all progress for this dungeon?')) {
+                const progress = loadProgress();
+                delete progress[currentEditingDungeon];
+                saveProgress(progress);
+                renderDungeons();
+                closeModal();
+            }
+        });
+
+        document.getElementById('cancelBtn').addEventListener('click', closeModal);
+
+        ['editModal', 'addCharacterModal', 'manageModal'].forEach(modalId => {
+            document.getElementById(modalId).addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.remove('active');
+                }
+            });
+        });
+
+        // Initialize
+        async function init() {
+            await Storage.load();
+            accountName = Storage.get('accountName') || '';
+            if (!accountName) {
+                showSetup();
+            } else {
+                showCharacterSelection();
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
